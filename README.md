@@ -40,7 +40,7 @@ Requirements: Node 20+. ffmpeg and ffprobe come from npm (`ffmpeg-static`, `ffpr
 
 ```bash
 npm install
-cp .env.example .env.local     # set ANTHROPIC_API_KEY (or run `ant auth login`)
+cp .env.example .env.local     # only for the API pipeline: set ANTHROPIC_API_KEY (the Claude Code skill needs no key)
 ```
 
 ## Use it
@@ -126,9 +126,19 @@ scripts/         analyze / render / render-sample CLIs
 | `STORAGE_DIR` | `./storage` | Where jobs are stored |
 | `FFMPEG_PATH`, `FFPROBE_PATH` | npm binaries | Use system ffmpeg instead |
 
-## Claude Code skill
+## Claude Code skill (no API key)
 
-This repo ships a project skill at [.claude/skills/cmkatana](.claude/skills/cmkatana/SKILL.md). Open the folder in Claude Code and run `/cmkatana`. It opens a local upload box for the reference video, runs the analysis, opens an asset upload page for every slot, and renders the result. You can open the same pages by hand with `npm run upload -- video` and `npm run upload -- assets <jobId>`.
+Open this folder in [Claude Code](https://claude.com/claude-code) and run `/cmkatana`. It works on a normal Claude subscription: **Claude Code itself does the vision analysis**, so you don't need an `ANTHROPIC_API_KEY`.
+
+1. A local upload box opens in your browser. Drop the reference video.
+2. `npm run skill -- prepare` finds the cuts and builds labeled contact sheets plus one task file per shot. Claude Code reads the frames and writes each shot as MotionSpec JSON (one subagent per shot for longer videos). `breakdown` validates it against the schema.
+3. Claude Code unifies the slots and writes the Motion Prompt. `assemble` builds `spec.json`.
+4. Accuracy passes: `refine` renders the spec and scores it against the original with SSIM. Claude Code looks at original-versus-render comparison sheets and corrects the weak shots. `finish` keeps each shot's best version.
+5. An asset upload page opens with one card per slot (logo, images, footage, text, colors). Then `npm run render` writes the MP4.
+
+All of these steps are local scripts ([scripts/skill.ts](scripts/skill.ts), [scripts/upload.ts](scripts/upload.ts)). You can also open the pages by hand with `npm run upload -- video` and `npm run upload -- assets <jobId>`.
+
+The **API pipeline** (`npm run analyze`, and the web app's analyze button) does the same analysis with direct Claude API calls in parallel. It needs `ANTHROPIC_API_KEY` and suits batch or unattended use.
 
 ## License
 

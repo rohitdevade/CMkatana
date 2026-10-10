@@ -79,13 +79,16 @@ export const TextLayer: React.FC<Props> = ({ layer, text, originalText, colorOve
   };
 
   const anim = layer.textAnim;
+  // Whitespace units (kept only for layout in word mode) don't take a stagger slot.
+  let unitIndex = 0;
+  const staggerIndex = (u: string) => (anim?.unit === "word" && !u.trim() ? Math.max(0, unitIndex - 1) : unitIndex++);
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: style?.align === "left" ? "flex-start" : style?.align === "right" ? "flex-end" : "center" }}>
       <div style={css}>
         {anim
           ? splitUnits(text, anim.unit).map((u, i) => (
               <React.Fragment key={i}>
-                <span style={unitStyle(anim, i, frame, width, height)}>{u}</span>
+                <span style={unitStyle(anim, staggerIndex(u), frame, width, height)}>{u}</span>
                 {anim.unit === "line" ? <br /> : null}
               </React.Fragment>
             ))

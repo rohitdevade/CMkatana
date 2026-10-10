@@ -13,7 +13,7 @@ import type { ShotRange } from "./scenes";
 export const REF_NAME = "ref.mp4";
 export const shotId = (i: number) => `shot-${i + 1}`;
 
-async function thumbnailStrip(sampled: SampledFrames, shots: ShotRange[], outFile: string): Promise<string> {
+export async function thumbnailStrip(sampled: SampledFrames, shots: ShotRange[], outFile: string): Promise<string> {
   const cols = Math.min(6, shots.length);
   const tileW = 320;
   const meta = await sharp(path.join(sampled.dir, frameName(sampled.frames[0]))).metadata();
@@ -38,7 +38,7 @@ async function thumbnailStrip(sampled: SampledFrames, shots: ShotRange[], outFil
   return outFile;
 }
 
-function compactBreakdown(analyses: ShotAnalysis[], shots: ShotRange[], fps: number) {
+export function compactBreakdown(analyses: ShotAnalysis[], shots: ShotRange[], fps: number) {
   return analyses.map((a, i) => ({
     shotId: shotId(i),
     startSec: +(shots[i].from / fps).toFixed(2),
@@ -65,7 +65,7 @@ function compactBreakdown(analyses: ShotAnalysis[], shots: ShotRange[], fps: num
   }));
 }
 
-export async function mergeSpec(opts: {
+type MergeInputs = {
   jobDir: string;
   refFile: string;
   info: VideoInfo;
@@ -73,7 +73,9 @@ export async function mergeSpec(opts: {
   shots: ShotRange[];
   analyses: ShotAnalysis[];
   log?: (msg: string) => void;
-}): Promise<{ spec: MotionSpec; motionPrompt: string; merge: MergeResult }> {
+};
+
+export async function mergeSpec(opts: MergeInputs): Promise<{ spec: MotionSpec; motionPrompt: string; merge: MergeResult }> {
   const { info, shots, analyses } = opts;
   const strip = await thumbnailStrip(opts.sampled, shots, path.join(opts.jobDir, "sheets", "strip.jpg"));
 
@@ -88,6 +90,13 @@ export async function mergeSpec(opts: {
       textBlock(`Per-shot breakdown (JSON):\n${JSON.stringify(compactBreakdown(analyses, shots, info.fps))}`),
     ],
   });
+  const spec = await assembleSpec({ ...opts, merge });
+  return { spec, motionPrompt: merge.motionPrompt, merge };
+}
+
+/** Builds the final MotionSpec from per-shot analyses + a merge result (no Claude calls). */
+export async function assembleSpec(opts: MergeInputs & { merge: Omit<MergeResult, "motionPrompt"> }): Promise<MotionSpec> {
+  const { info, shots, analyses, merge } = opts;
 
   // (shotId, candidateId) → global slot id
   const memberOf = new Map<string, string>();
@@ -166,7 +175,7 @@ export async function mergeSpec(opts: {
 
   const fonts = [...new Set([...merge.fonts, ...specShots.flatMap((s) => s.layers.map((l) => l.style?.fontFamily).filter((f): f is string => Boolean(f)))])];
 
-  const spec = sanitizeSpec(
+  return sanitizeSpec(
     MotionSpecSchema.parse({
       version: 1,
       title: merge.title,
@@ -181,6 +190,4 @@ export async function mergeSpec(opts: {
       shots: specShots,
     }),
   );
-
-  return { spec, motionPrompt: merge.motionPrompt, merge };
 }

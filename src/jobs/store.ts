@@ -56,6 +56,19 @@ export function createJob(originalName: string): Job {
   return job;
 }
 
+/** tmp + fsync + rename: a crash leaves either the old or the new file, never a zero-filled one. */
+export function writeFileDurable(file: string, data: string): void {
+  const tmp = file + ".tmp";
+  const fd = fs.openSync(tmp, "w");
+  try {
+    fs.writeFileSync(fd, data);
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.renameSync(tmp, file);
+}
+
 export function getJob(id: string): Job | null {
   try {
     return JSON.parse(fs.readFileSync(jobFile(id), "utf8")) as Job;
@@ -66,9 +79,7 @@ export function getJob(id: string): Job | null {
 
 function saveJob(job: Job): void {
   job.updatedAt = new Date().toISOString();
-  const tmp = jobFile(job.id) + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(job, null, 2));
-  fs.renameSync(tmp, jobFile(job.id));
+  writeFileDurable(jobFile(job.id), JSON.stringify(job, null, 2));
 }
 
 export function updateJob(id: string, patch: Partial<Job> | ((job: Job) => void)): Job {
@@ -110,5 +121,5 @@ export function readSpec(id: string): MotionSpec | null {
 }
 
 export function writeSpec(id: string, spec: MotionSpec): void {
-  fs.writeFileSync(specPath(id), JSON.stringify(spec, null, 2));
+  writeFileDurable(specPath(id), JSON.stringify(spec, null, 2));
 }

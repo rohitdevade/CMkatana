@@ -12,7 +12,8 @@
     "analyze": "tsx scripts/analyze.ts",
     "render": "tsx scripts/render.ts",
     "sample": "tsx scripts/render-sample.ts",
-    "upload": "tsx scripts/upload.ts"
+    "upload": "tsx scripts/upload.ts",
+    "skill": "tsx scripts/skill.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

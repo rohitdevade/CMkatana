@@ -13,7 +13,7 @@ import { compareSsim, ssimByShot } from "./ssim";
 export type ShotScore = { shotId: string; mean: number; worstFrame: number };
 export type RefineReport = { iteration: number; mean: number; byShot: ShotScore[] }[];
 
-async function comparisonSheet(ref: SampledFrames, render: SampledFrames, shot: Shot, outFile: string, perFrame: number[]): Promise<string> {
+export async function comparisonSheet(ref: SampledFrames, render: SampledFrames, shot: Shot, outFile: string, perFrame: number[]): Promise<string> {
   const inShot = ref.frames.filter((f) => f >= shot.from && f < shot.from + shot.durationInFrames && render.frames.includes(f));
   const max = 8;
   const picks = inShot.length <= max ? inShot : Array.from({ length: max }, (_, i) => inShot[Math.round((i * (inShot.length - 1)) / (max - 1))]);
