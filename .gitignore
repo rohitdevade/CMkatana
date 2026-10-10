@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+storage/*
+!storage/.gitkeep
+samples/*
+!samples/.gitkeep
+.env*.local
+.env
+*.tsbuildinfo
+next-env.d.ts
